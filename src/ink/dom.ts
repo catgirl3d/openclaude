@@ -227,19 +227,21 @@ function collectRemovedRects(
   removed: DOMNode,
   underAbsolute = false,
 ): void {
-  if (removed.nodeName === '#text') return
-  const elem = removed as DOMElement
+  if (!removed || removed.nodeName === '#text') return
+  const elem = removed as Partial<DOMElement>
   // If this node or any ancestor in the removed subtree was absolute,
   // its painted pixels may overlap non-siblings — flag for global blit
   // disable. Normal-flow removals only affect direct siblings, which
   // hasRemovedChild already handles.
-  const isAbsolute = underAbsolute || elem.style.position === 'absolute'
-  const cached = nodeCache.get(elem)
+  const isAbsolute = underAbsolute || elem.style?.position === 'absolute'
+  const cached = nodeCache.get(elem as DOMElement)
   if (cached) {
     addPendingClear(parent, cached, isAbsolute)
-    nodeCache.delete(elem)
+    nodeCache.delete(elem as DOMElement)
   }
-  for (const child of elem.childNodes) {
+  const childNodes = Array.isArray(elem.childNodes) ? [...elem.childNodes] : []
+  for (const child of childNodes) {
+    if (!child) continue
     collectRemovedRects(parent, child, isAbsolute)
   }
 }
