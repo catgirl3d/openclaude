@@ -231,7 +231,7 @@ function convertMessages(
               input?: unknown
               extra_content?: Record<string, unknown>
             }) => ({
-              id: tu.id ?? `call_${Math.random().toString(36).slice(2)}`,
+              id: tu.id ?? `call_${crypto.randomUUID().replace(/-/g, '')}`,
               type: 'function' as const,
               function: {
                 name: tu.name ?? 'unknown',
@@ -389,7 +389,7 @@ interface OpenAIStreamChunk {
 }
 
 function makeMessageId(): string {
-  return `msg_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+  return `msg_${crypto.randomUUID().replace(/-/g, '')}`
 }
 
 function convertChunkUsage(
@@ -610,6 +610,23 @@ async function* openaiStreamToAnthropic(
               : choice.finish_reason === 'length'
                 ? 'max_tokens'
                 : 'end_turn'
+          if (choice.finish_reason === 'content_filter' || choice.finish_reason === 'safety') {
+            // Gemini/Azure content safety filter blocked the response.
+            // Emit a visible text block so the user knows why output was truncated.
+            if (!hasEmittedContentStart) {
+              yield {
+                type: 'content_block_start',
+                index: contentBlockIndex,
+                content_block: { type: 'text', text: '' },
+              }
+              hasEmittedContentStart = true
+            }
+            yield {
+              type: 'content_block_delta',
+              index: contentBlockIndex,
+              delta: { type: 'text_delta', text: '\n\n[Content blocked by provider safety filter]' },
+            }
+          }
           lastStopReason = stopReason
 
           yield {
@@ -841,7 +858,14 @@ class OpenAIShimMessages {
     }
 
     const apiKey = process.env.OPENAI_API_KEY ?? ''
-    const isAzure = /cognitiveservices\.azure\.com|openai\.azure\.com/.test(request.baseUrl)
+    // Detect Azure endpoints by hostname (not raw URL) to prevent bypass via
+    // path segments like https://evil.com/cognitiveservices.azure.com/
+    let isAzure = false
+    try {
+      const { hostname } = new URL(request.baseUrl)
+      isAzure = hostname.endsWith('.azure.com') &&
+        (hostname.includes('cognitiveservices') || hostname.includes('openai') || hostname.includes('services.ai'))
+    } catch { /* malformed URL — not Azure */ }
 
     if (apiKey) {
       if (isAzure) {
@@ -1002,6 +1026,13 @@ class OpenAIShimMessages {
         : choice?.finish_reason === 'length'
           ? 'max_tokens'
           : 'end_turn'
+
+    if (choice?.finish_reason === 'content_filter' || choice?.finish_reason === 'safety') {
+      content.push({
+        type: 'text',
+        text: '\n\n[Content blocked by provider safety filter]',
+      })
+    }
 
     return {
       id: data.id ?? makeMessageId(),

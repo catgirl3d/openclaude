@@ -85,7 +85,7 @@ function makeUsage(usage?: {
 }
 
 function makeMessageId(): string {
-  return `msg_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+  return `msg_${crypto.randomUUID().replace(/-/g, '')}`
 }
 
 function normalizeToolUseId(toolUseId: string | undefined): {
