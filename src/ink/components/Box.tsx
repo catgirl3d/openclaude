@@ -8,19 +8,6 @@ import type { FocusEvent } from '../events/focus-event.js';
 import type { KeyboardEvent } from '../events/keyboard-event.js';
 import type { Styles } from '../styles.js';
 import * as warn from '../warn.js';
-
-const handlerIdentityKeys = new WeakMap<Function, number>();
-let nextHandlerIdentityKey = 1;
-
-function getHandlerIdentityKey(handler: Function): number {
-  const existing = handlerIdentityKeys.get(handler);
-  if (existing !== undefined) {
-    return existing;
-  }
-  const next = nextHandlerIdentityKey++;
-  handlerIdentityKeys.set(handler, next);
-  return next;
-}
 export type Props = Except<Styles, 'textWrap'> & {
   /**
    * Tab order index. Nodes with `tabIndex >= 0` participate in
@@ -172,8 +159,18 @@ function BoxInner(t0, ref: React.ForwardedRef<DOMElement>) {
   }
   const t1 = style.overflowX ?? style.overflow ?? "visible";
   const t2 = style.overflowY ?? style.overflow ?? "visible";
-  const shouldRemountInteractiveHost = autoFocus === true && typeof tabIndex === 'number' && tabIndex >= 0 && onKeyDown !== undefined;
-  const hostKey = shouldRemountInteractiveHost ? getHandlerIdentityKey(onKeyDown) : undefined;
+  const onKeyDownRef = React.useRef(onKeyDown);
+  onKeyDownRef.current = onKeyDown;
+  const onKeyDownCaptureRef = React.useRef(onKeyDownCapture);
+  onKeyDownCaptureRef.current = onKeyDownCapture;
+  const stableOnKeyDown = React.useCallback((event: KeyboardEvent) => {
+    onKeyDownRef.current?.(event);
+  }, []);
+  const stableOnKeyDownCapture = React.useCallback((event: KeyboardEvent) => {
+    onKeyDownCaptureRef.current?.(event);
+  }, []);
+  const hostOnKeyDown = onKeyDown === undefined ? undefined : stableOnKeyDown;
+  const hostOnKeyDownCapture = onKeyDownCapture === undefined ? undefined : stableOnKeyDownCapture;
   let t3;
   if ($[19] !== flexDirection || $[20] !== flexGrow || $[21] !== flexShrink || $[22] !== flexWrap || $[23] !== style || $[24] !== t1 || $[25] !== t2) {
     t3 = {
@@ -197,26 +194,25 @@ function BoxInner(t0, ref: React.ForwardedRef<DOMElement>) {
     t3 = $[26];
   }
   let t4;
-  if ($[27] !== autoFocus || $[28] !== children || $[29] !== hostKey || $[30] !== onBlur || $[31] !== onBlurCapture || $[32] !== onClick || $[33] !== onFocus || $[34] !== onFocusCapture || $[35] !== onKeyDown || $[36] !== onKeyDownCapture || $[37] !== onMouseEnter || $[38] !== onMouseLeave || $[39] !== ref || $[40] !== t3 || $[41] !== tabIndex) {
-    t4 = <ink-box key={hostKey} ref={ref} tabIndex={tabIndex} autoFocus={autoFocus} onClick={onClick} onFocus={onFocus} onFocusCapture={onFocusCapture} onBlur={onBlur} onBlurCapture={onBlurCapture} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} onKeyDown={onKeyDown} onKeyDownCapture={onKeyDownCapture} style={t3}>{children}</ink-box>;
+  if ($[27] !== autoFocus || $[28] !== children || $[29] !== onBlur || $[30] !== onBlurCapture || $[31] !== onClick || $[32] !== onFocus || $[33] !== onFocusCapture || $[34] !== hostOnKeyDown || $[35] !== hostOnKeyDownCapture || $[36] !== onMouseEnter || $[37] !== onMouseLeave || $[38] !== ref || $[39] !== t3 || $[40] !== tabIndex) {
+    t4 = <ink-box ref={ref} tabIndex={tabIndex} autoFocus={autoFocus} onClick={onClick} onFocus={onFocus} onFocusCapture={onFocusCapture} onBlur={onBlur} onBlurCapture={onBlurCapture} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} onKeyDown={hostOnKeyDown} onKeyDownCapture={hostOnKeyDownCapture} style={t3}>{children}</ink-box>;
     $[27] = autoFocus;
     $[28] = children;
-    $[29] = hostKey;
-    $[30] = onBlur;
-    $[31] = onBlurCapture;
-    $[32] = onClick;
-    $[33] = onFocus;
-    $[34] = onFocusCapture;
-    $[35] = onKeyDown;
-    $[36] = onKeyDownCapture;
-    $[37] = onMouseEnter;
-    $[38] = onMouseLeave;
-    $[39] = ref;
-    $[40] = t3;
-    $[41] = tabIndex;
-    $[42] = t4;
+    $[29] = onBlur;
+    $[30] = onBlurCapture;
+    $[31] = onClick;
+    $[32] = onFocus;
+    $[33] = onFocusCapture;
+    $[34] = hostOnKeyDown;
+    $[35] = hostOnKeyDownCapture;
+    $[36] = onMouseEnter;
+    $[37] = onMouseLeave;
+    $[38] = ref;
+    $[39] = t3;
+    $[40] = tabIndex;
+    $[41] = t4;
   } else {
-    t4 = $[42];
+    t4 = $[41];
   }
   return t4;
 }

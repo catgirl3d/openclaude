@@ -112,7 +112,7 @@ const memoizedStylesForWrap: Record<NonNullable<Styles['textWrap']>, Styles> = {
  * This component can display text, and change its style to make it colorful, bold, underline, italic or strikethrough.
  */
 export default function Text(t0) {
-  const $ = _c(29);
+  const $ = _c(30);
   const {
     color,
     backgroundColor,
@@ -238,16 +238,18 @@ export default function Text(t0) {
     t14 = $[24];
   }
   const textStyles = t14;
+  const textStyleKey = JSON.stringify(textStyles);
   const t15 = memoizedStylesForWrap[wrap];
   let t16;
-  if ($[25] !== children || $[26] !== t15 || $[27] !== textStyles) {
-    t16 = <ink-text style={t15} textStyles={textStyles}>{children}</ink-text>;
+  if ($[25] !== children || $[26] !== t15 || $[27] !== textStyleKey || $[28] !== textStyles) {
+    t16 = <ink-text key={textStyleKey} style={t15} textStyles={textStyles}>{children}</ink-text>;
     $[25] = children;
     $[26] = t15;
-    $[27] = textStyles;
-    $[28] = t16;
+    $[27] = textStyleKey;
+    $[28] = textStyles;
+    $[29] = t16;
   } else {
-    t16 = $[28];
+    t16 = $[29];
   }
   return t16;
 }
